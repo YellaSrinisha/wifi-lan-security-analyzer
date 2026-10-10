@@ -1,0 +1,7 @@
+{
+  "task_id": "task-module2-security-analysis",
+  "task_description": "Implement Module 2 of Wi-Fi/LAN Security Analyzer: SQLite persistence, device inventory with approval workflow, risk engine (4 rules), security scoring, scan history, scan comparison, findings page, CSV report export, and full frontend integration — all without breaking Module 1.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

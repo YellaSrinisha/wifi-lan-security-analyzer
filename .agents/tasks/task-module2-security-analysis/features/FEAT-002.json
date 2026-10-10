@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Frontend integration: extend api.js and scanService.js with all new service calls; update all five placeholder/partial pages (SecurityFindings, ScanHistory, Reports, NetworkDevices, Dashboard) to use real DB-backed data; update version footer. Depends on FEAT-001 (needs the new API endpoints to exist). FEAT-003 (tests and docs) is independent of this feature.",
+  "status": "pending",
+  "steps": [
+    "Step 1 — Extend frontend/src/services/api.js: add patch(path, body) function following the exact same pattern as post() — fetch with method='PATCH', Content-Type application/json, body=JSON.stringify(body), throw on !response.ok with message 'PATCH {path} failed ({status}): {text}'.",
+    "Step 2 — Extend frontend/src/services/scanService.js: add getScanById(scanId) -> get('/api/scans/'+scanId), compareScans(scanA, scanB) -> get('/api/scans/compare?scan_a='+scanA+'&scan_b='+scanB), getFindings(scanId) -> get('/api/findings'+(scanId?'?scan_id='+scanId:'')), getReport(scanId) -> get('/api/reports/'+scanId), getDeviceById(deviceId) -> get('/api/devices/'+deviceId), updateApproval(deviceId, status) -> patch('/api/devices/'+deviceId+'/approval', {approval_status: status}), getReportCsvUrl(scanId) -> returns string (import.meta.env.VITE_API_BASE_URL||'http://localhost:8000')+'/api/reports/'+scanId+'/csv' (no fetch call, just URL construction for download link).",
+    "Step 3 — Rewrite frontend/src/pages/SecurityFindings.jsx: (a) on mount, load getScanHistory() to populate a scan filter dropdown and getFindings() for all findings; (b) when scan filter changes call getFindings(selectedScanId); (c) show severity summary counts at top (high/medium/low/info) as colored stat boxes; (d) render Table with columns: Severity (Badge: red=high, yellow=medium, blue=low, gray=info), Rule ID, Title, Device (show device_id first 8 chars or '—'), Recommendation; (e) show LoadingSpinner while loading, ErrorMessage on error; (f) remove all placeholder content.",
+    "Step 4 — Extend frontend/src/pages/ScanHistory.jsx: (a) remove the 'session-only' info banner; (b) add completed_at column to the table; (c) add scan comparison UI: two radio/checkbox inputs per row to select 'Scan A' and 'Scan B'; add a 'Compare' button that calls compareScans(scanAId, scanBId) and shows result in a Card below the table; the comparison card should show: new devices (IPs added), removed devices (IPs gone), port changes (open ports added/removed per device); show LoadingSpinner while comparing, ErrorMessage on compare error.",
+    "Step 5 — Extend frontend/src/pages/Reports.jsx: (a) remove the 'Module 2 coming soon' banner; (b) add a scan selector: a <select> element populated from getScanHistory(), showing scan_type + target + started_at; (c) when a scan is selected call getReport(scan_id) and display: scan summary card (id, type, target, status, started_at, completed_at), score card (score/100 with Badge color green>=80/yellow>=50/red<50, provisional warning if applicable), devices table (IP, MAC, hostname, approval_status Badge), findings table (severity, rule, title, recommendation); (d) add 'Download CSV' button that sets window.location.href = getReportCsvUrl(selectedScanId); (e) keep existing print button; (f) show LoadingSpinner while fetching report, ErrorMessage on error.",
+    "Step 6 — Extend frontend/src/pages/NetworkDevices.jsx: (a) change the data source to call getDevices() which now returns DeviceDB shape from DB; (b) add 'Status' column showing approval_status as Badge (green=approved, yellow=pending_review, red=revoked); (c) add 'First Seen' column; (d) update Actions column: keep 'Scan Ports' button; add 'Approve' button (shown when approval_status != 'approved') that calls updateApproval(device.device_id, 'approved') then refetches; add 'Revoke' button (shown when approval_status == 'approved') that calls updateApproval(device.device_id, 'revoked') then refetches; (e) if device.device_id is undefined (in-memory fallback row), hide approve/revoke buttons gracefully using optional chaining; (f) show loading/error states.",
+    "Step 7 — Extend frontend/src/pages/Dashboard.jsx: (a) after a discovery scan completes, use the returned scan_id to call getReport(scan_id) and extract the score; (b) add a 'Security Score' stat card that shows the score (e.g. '85/100') or '—' if no scan has been run yet; (c) keep all four existing stat cards — add score as a fifth card or replace the 'Scanner Status' card if five is too many (replace the scanner status card with the score card and move nmap status to the sub-label); actually — add it as a fifth card, keeping all existing four.",
+    "Step 8 — Update frontend/src/layouts/MainLayout.jsx: change 'Module 1 — v1.0.0' to 'Module 2 — v2.0.0' in the version footer."
+  ],
+  "acceptance_criteria": [
+    "cd frontend && npm run build exits 0 with no errors",
+    "SecurityFindings page renders a table of findings fetched from GET /api/findings",
+    "SecurityFindings page has a scan filter dropdown",
+    "NetworkDevices page shows approval_status badge and approve/revoke buttons",
+    "PATCH /api/devices/{id}/approval is called when approve/revoke button is clicked",
+    "ScanHistory page has scan comparison UI with Compare button",
+    "Reports page has a scan selector, score card, Download CSV button, and print button",
+    "Dashboard has a Security Score stat card",
+    "MainLayout footer shows 'Module 2 — v2.0.0'"
+  ],
+  "verification": [
+    "cd 'c:\\WiFi security analyzer\\wifi-lan-security-analyzer\\frontend' && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
