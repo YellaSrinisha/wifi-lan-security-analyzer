@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend integration: extend api.js and scanService.js with all new service calls; update all five placeholder/partial pages (SecurityFindings, ScanHistory, Reports, NetworkDevices, Dashboard) to use real DB-backed data; update version footer. Depends on FEAT-001 (needs the new API endpoints to exist). FEAT-003 (tests and docs) is independent of this feature.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Step 1 — Extend frontend/src/services/api.js: add patch(path, body) function following the exact same pattern as post() — fetch with method='PATCH', Content-Type application/json, body=JSON.stringify(body), throw on !response.ok with message 'PATCH {path} failed ({status}): {text}'.",
     "Step 2 — Extend frontend/src/services/scanService.js: add getScanById(scanId) -> get('/api/scans/'+scanId), compareScans(scanA, scanB) -> get('/api/scans/compare?scan_a='+scanA+'&scan_b='+scanB), getFindings(scanId) -> get('/api/findings'+(scanId?'?scan_id='+scanId:'')), getReport(scanId) -> get('/api/reports/'+scanId), getDeviceById(deviceId) -> get('/api/devices/'+deviceId), updateApproval(deviceId, status) -> patch('/api/devices/'+deviceId+'/approval', {approval_status: status}), getReportCsvUrl(scanId) -> returns string (import.meta.env.VITE_API_BASE_URL||'http://localhost:8000')+'/api/reports/'+scanId+'/csv' (no fetch call, just URL construction for download link).",
@@ -28,5 +28,5 @@
     "cd 'c:\\WiFi security analyzer\\wifi-lan-security-analyzer\\frontend' && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "COMPLETED. All 8 steps implemented and verified.\n\n1. api.js: added patch() function matching post() pattern.\n2. scanService.js: added getScanById, compareScans, getFindings, getReport, getDeviceById, updateApproval, getReportCsvUrl.\n3. SecurityFindings.jsx: fully rewritten — scan filter dropdown, severity summary stat boxes (high/medium/low/info), Table with Severity Badge/Rule ID/Title/Device/Recommendation columns, loading/error states.\n4. ScanHistory.jsx: removed session-only banner; added completed_at column; added scan comparison UI with Scan A/B radio buttons per row and Compare button; comparison result card shows devices_added, devices_removed, ports_opened, ports_closed.\n5. Reports.jsx: fully rewritten — scan selector from DB history, scan summary card, score card with Badge and provisional warning, devices table, findings table, Download CSV button (window.location.href), Print button kept.\n6. NetworkDevices.jsx: updated to use DeviceDB fields (last_known_ip, device_id, approval_status, first_seen); added Status Badge column; added Approve/Revoke buttons with updateApproval call; approve/revoke hidden gracefully when device_id is absent.\n7. Dashboard.jsx: added securityScore state; getReport() called after discovery scan using returned scan_id; added fifth Security Score stat card.\n8. MainLayout.jsx: footer updated from 'Module 1 — v1.0.0' to 'Module 2 — v2.0.0'.\n\nVerification: frontend npm run build exits 0 (53 modules, no errors). All 80 backend tests still pass."
 }

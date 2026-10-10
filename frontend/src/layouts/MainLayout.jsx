@@ -42,7 +42,7 @@ export default function MainLayout() {
         </nav>
         <div className="px-4 py-3 border-t border-slate-700">
           <p className="text-xs text-slate-500">Wi-Fi/LAN Security Analyzer</p>
-          <p className="text-xs text-slate-500">Module 1 — v1.0.0</p>
+          <p className="text-xs text-slate-500">Module 2 — v2.0.0</p>
         </div>
       </aside>
       {/* Main content */}

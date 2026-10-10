@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getHealth, getInterfaces } from '../services/networkService';
-import { getDevices, getScanHistory, runDiscovery } from '../services/scanService';
+import { getDevices, getScanHistory, runDiscovery, getReport } from '../services/scanService';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import ErrorMessage from '../components/ErrorMessage';
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [subnet, setSubnet] = useState('');
   const [showSubnetForm, setShowSubnetForm] = useState(false);
+  const [securityScore, setSecurityScore] = useState(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -57,10 +58,21 @@ export default function Dashboard() {
     setScanning(true);
     setScanError(null);
     try {
-      await runDiscovery(subnet.trim());
+      const scanResult = await runDiscovery(subnet.trim());
       setShowSubnetForm(false);
       setSubnet('');
       await fetchAll();
+      // Fetch score for the completed scan if we have a scan_id
+      if (scanResult?.scan_id) {
+        try {
+          const reportData = await getReport(scanResult.scan_id);
+          if (reportData?.score?.score != null) {
+            setSecurityScore(reportData.score.score);
+          }
+        } catch {
+          // Score fetch is best-effort; don't block the dashboard
+        }
+      }
     } catch (err) {
       setScanError(err.message);
     } finally {
@@ -92,6 +104,11 @@ export default function Dashboard() {
               label="Scanner Status"
               value={health?.nmap_available ? '✓ Ready' : '✗ Unavailable'}
               sub={health?.nmap_available ? 'Nmap detected' : 'Nmap not found'}
+            />
+            <StatCard
+              label="Security Score"
+              value={securityScore != null ? `${securityScore}/100` : '—'}
+              sub={securityScore != null ? (securityScore >= 80 ? 'Good' : securityScore >= 50 ? 'Fair' : 'Poor') : 'Run a scan to score'}
             />
           </div>
 

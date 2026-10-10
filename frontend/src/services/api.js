@@ -24,3 +24,16 @@ export async function post(path, body) {
   }
   return response.json();
 }
+
+export async function patch(path, body) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`PATCH ${path} failed (${response.status}): ${text}`);
+  }
+  return response.json();
+}
