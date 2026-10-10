@@ -13,3 +13,5 @@ class FindingOut(BaseModel):
     evidence: Optional[str] = None
     recommendation: str
     created_at: str
+    how_to_fix: Optional[str] = None
+    verification_steps: Optional[str] = None

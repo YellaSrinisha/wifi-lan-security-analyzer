@@ -31,6 +31,19 @@ def get_connection():
         conn.close()
 
 
+def open_connection():
+    """
+    Open and return a raw sqlite3 connection with FK enforcement.
+    Caller is responsible for calling conn.close().
+    Use this for long-lived connections (e.g. inside nmap_service scan functions).
+    Use get_connection() context manager for short-lived queries in API routes.
+    """
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
 _CREATE_SCHEMA_VERSIONS = """
 CREATE TABLE IF NOT EXISTS schema_versions (
     version    INTEGER PRIMARY KEY,
@@ -130,6 +143,11 @@ _CREATE_INDEXES = [
 ]
 
 
+def _column_exists(conn, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(row['name'] == column for row in rows)
+
+
 def init_db() -> None:
     """
     Create all tables and indexes if they don't exist.
@@ -160,5 +178,47 @@ def init_db() -> None:
                         "INSERT INTO schema_versions(version, applied_at) VALUES(1, ?)",
                         (_now_iso(),),
                     )
+                # Version 2 migration: add how_to_fix and verification_steps
+                if not _column_exists(conn, 'security_findings', 'how_to_fix'):
+                    conn.execute("ALTER TABLE security_findings ADD COLUMN how_to_fix TEXT")
+                if not _column_exists(conn, 'security_findings', 'verification_steps'):
+                    conn.execute("ALTER TABLE security_findings ADD COLUMN verification_steps TEXT")
+                row2 = conn.execute(
+                    "SELECT version FROM schema_versions WHERE version = 2"
+                ).fetchone()
+                if row2 is None:
+                    conn.execute(
+                        "INSERT INTO schema_versions(version, applied_at) VALUES(2, ?)",
+                        (_now_iso(),),
+                    )
         except sqlite3.Error as exc:
             raise RuntimeError(f"Database initialization failed: {exc}") from exc
+
+    with get_connection() as conn2:
+        backfill_fix_content(conn2)
+
+
+def backfill_fix_content(conn) -> None:
+    """Backfill how_to_fix and verification_steps for existing findings."""
+    # Lazy import to avoid circular imports at module load time
+    from app.services.risk_engine import _get_fix_content  # noqa: PLC0415
+
+    rows = conn.execute(
+        "SELECT finding_id, rule_id, evidence FROM security_findings WHERE how_to_fix IS NULL"
+    ).fetchall()
+    for row in rows:
+        rule_id = row['rule_id']
+        evidence = row['evidence'] or ''
+        port_number = None
+        try:
+            if 'Port ' in evidence:
+                port_str = evidence.split('Port ')[1].split('/')[0]
+                port_number = int(port_str)
+        except Exception:
+            pass
+        htf, vsteps = _get_fix_content(rule_id, port_number)
+        conn.execute(
+            "UPDATE security_findings SET how_to_fix=?, verification_steps=? WHERE finding_id=?",
+            (htf or None, vsteps or None, row['finding_id'])
+        )
+    conn.commit()

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getScanHistory, getFindings } from '../services/scanService';
 import PageHeader from '../components/PageHeader';
 import Card from '../components/Card';
-import Table from '../components/Table';
 import Badge from '../components/Badge';
+import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -14,14 +15,28 @@ function severityVariant(severity) {
   return 'gray';
 }
 
+function severityHeaderClass(severity) {
+  if (severity === 'high') return 'bg-red-100 border-b border-red-200';
+  if (severity === 'medium') return 'bg-yellow-100 border-b border-yellow-200';
+  if (severity === 'low') return 'bg-blue-100 border-b border-blue-200';
+  return 'bg-gray-100 border-b border-gray-200';
+}
+
+function extractIp(evidence) {
+  if (!evidence) return null;
+  const matches = evidence.match(/(\d{1,3}\.){3}\d{1,3}/g);
+  return matches ? matches[matches.length - 1] : null;
+}
+
 export default function SecurityFindings() {
+  const navigate = useNavigate();
   const [scans, setScans] = useState([]);
   const [findings, setFindings] = useState([]);
   const [selectedScanId, setSelectedScanId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
-  // Load scan list and all findings on mount
   useEffect(() => {
     async function loadInitial() {
       setLoading(true);
@@ -42,10 +57,10 @@ export default function SecurityFindings() {
     loadInitial();
   }, []);
 
-  // Reload findings when scan filter changes
   async function handleScanFilterChange(e) {
     const value = e.target.value;
     setSelectedScanId(value);
+    setExpandedId(null);
     setLoading(true);
     setError(null);
     try {
@@ -58,7 +73,21 @@ export default function SecurityFindings() {
     }
   }
 
-  // Severity summary counts
+  function toggleExpand(findingId) {
+    setExpandedId(prev => prev === findingId ? null : findingId);
+  }
+
+  function handleRescan(finding) {
+    if (finding.rule_id === 'NEW_DEVICE_001') {
+      navigate('/devices');
+      return;
+    }
+    const ip = extractIp(finding.evidence);
+    if (ip) {
+      navigate('/port-scanner?ip=' + encodeURIComponent(ip));
+    }
+  }
+
   const counts = findings.reduce(
     (acc, f) => {
       acc[f.severity] = (acc[f.severity] || 0) + 1;
@@ -66,22 +95,6 @@ export default function SecurityFindings() {
     },
     { high: 0, medium: 0, low: 0, info: 0 }
   );
-
-  const columns = [
-    {
-      key: 'severity',
-      label: 'Severity',
-      render: (v) => <Badge variant={severityVariant(v)}>{v}</Badge>,
-    },
-    { key: 'rule_id', label: 'Rule ID' },
-    { key: 'title', label: 'Title' },
-    {
-      key: 'device_id',
-      label: 'Device',
-      render: (v) => v ? v.slice(0, 8) : '—',
-    },
-    { key: 'recommendation', label: 'Recommendation' },
-  ];
 
   return (
     <div>
@@ -110,7 +123,7 @@ export default function SecurityFindings() {
         </div>
       </div>
 
-      {/* Scan filter dropdown */}
+      {/* Scan filter */}
       <div className="mb-4 flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700">Filter by scan:</label>
         <select
@@ -133,11 +146,89 @@ export default function SecurityFindings() {
         <LoadingSpinner text="Loading findings..." />
       ) : (
         <Card>
-          <Table
-            columns={columns}
-            data={findings}
-            emptyMessage="No findings yet. Run a scan to generate security findings."
-          />
+          {findings.length === 0 ? (
+            <p className="text-sm text-gray-500 py-4 text-center">
+              No findings yet. Run a scan to generate security findings.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Rule ID</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Affected IP</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Recommendation</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {findings.map((f) => (
+                    <>
+                      <tr key={f.finding_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <Badge variant={severityVariant(f.severity)}>{f.severity}</Badge>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-gray-600">{f.rule_id}</td>
+                        <td className="px-4 py-3">{f.title}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs">{extractIp(f.evidence) || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600">{f.recommendation}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <button
+                            onClick={() => toggleExpand(f.finding_id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-expanded={expandedId === f.finding_id}
+                            aria-controls={`fix-panel-${f.finding_id}`}
+                          >
+                            <span style={{display: 'inline-block', transform: expandedId === f.finding_id ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s'}}>▶</span>
+                            How to Fix
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedId === f.finding_id && (
+                        <tr key={`${f.finding_id}-panel`} id={`fix-panel-${f.finding_id}`}>
+                          <td colSpan={6} className="px-0 py-0">
+                            <div className="mx-4 mb-3 mt-1 rounded-lg border overflow-hidden">
+                              {/* Header */}
+                              <div className={`px-4 py-2 flex items-center gap-2 ${severityHeaderClass(f.severity)}`}>
+                                <span role="img" aria-label="wrench">🔧</span>
+                                <span className="font-semibold text-sm">How to Fix — {f.title}</span>
+                              </div>
+                              {/* Body */}
+                              <div className="px-4 py-3 bg-white">
+                                {f.how_to_fix ? (
+                                  <div className="mb-3">
+                                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">{f.how_to_fix}</pre>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-500 mb-3">No fix instructions available for this finding.</p>
+                                )}
+                                {f.verification_steps && (
+                                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                                    <p className="text-xs font-semibold text-green-800 mb-1">✅ How to verify the fix:</p>
+                                    <p className="text-sm text-green-900 whitespace-pre-wrap">{f.verification_steps}</p>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => handleRescan(f)}
+                                  >
+                                    🔍 Rescan this device
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       )}
     </div>
