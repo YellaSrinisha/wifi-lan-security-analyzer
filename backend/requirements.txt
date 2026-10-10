@@ -1,3 +1,14 @@
+# ---------------------------------------------------------------------------
+# Python standard-library modules used by this project (no pip install needed)
+# ---------------------------------------------------------------------------
+# sqlite3    — SQLite database driver (backend/app/database/db.py)
+# hashlib    — SHA-256 deduplication keys (backend/app/services/risk_engine.py)
+# csv        — CSV report generation (backend/app/services/report_service.py)
+# io         — in-memory StringIO for CSV export (backend/app/services/report_service.py)
+# contextlib — @contextmanager for get_connection() (backend/app/database/db.py)
+# uuid       — uuid4 device/scan ID generation (backend/app/services/inventory_service.py)
+# ---------------------------------------------------------------------------
+
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.8.2
