@@ -177,32 +177,26 @@ export default function SecurityFindings() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button
                             onClick={() => toggleExpand(f.finding_id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            aria-expanded={expandedId === f.finding_id}
-                            aria-controls={`fix-panel-${f.finding_id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
                           >
-                            <span style={{display: 'inline-block', transform: expandedId === f.finding_id ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s'}}>▶</span>
+                            <span style={{ display: 'inline-block', transform: expandedId === f.finding_id ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>▶</span>
                             How to Fix
                           </button>
                         </td>
                       </tr>
                       {expandedId === f.finding_id && (
-                        <tr key={`${f.finding_id}-panel`} id={`fix-panel-${f.finding_id}`}>
+                        <tr key={`${f.finding_id}-panel`}>
                           <td colSpan={6} className="px-0 py-0">
                             <div className="mx-4 mb-3 mt-1 rounded-lg border overflow-hidden">
-                              {/* Header */}
                               <div className={`px-4 py-2 flex items-center gap-2 ${severityHeaderClass(f.severity)}`}>
-                                <span role="img" aria-label="wrench">🔧</span>
+                                <span>🔧</span>
                                 <span className="font-semibold text-sm">How to Fix — {f.title}</span>
                               </div>
-                              {/* Body */}
                               <div className="px-4 py-3 bg-white">
                                 {f.how_to_fix ? (
-                                  <div className="mb-3">
-                                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">{f.how_to_fix}</pre>
-                                  </div>
+                                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed mb-3">{f.how_to_fix}</pre>
                                 ) : (
-                                  <p className="text-sm text-gray-500 mb-3">No fix instructions available for this finding.</p>
+                                  <p className="text-sm text-gray-500 mb-3">No fix instructions available.</p>
                                 )}
                                 {f.verification_steps && (
                                   <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
@@ -210,14 +204,9 @@ export default function SecurityFindings() {
                                     <p className="text-sm text-green-900 whitespace-pre-wrap">{f.verification_steps}</p>
                                   </div>
                                 )}
-                                <div className="flex gap-2 mt-2">
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => handleRescan(f)}
-                                  >
-                                    🔍 Rescan this device
-                                  </Button>
-                                </div>
+                                <Button variant="secondary" onClick={() => handleRescan(f)}>
+                                  🔍 Rescan this device
+                                </Button>
                               </div>
                             </div>
                           </td>

@@ -64,12 +64,16 @@ def build_report(conn, scan_id: str) -> Optional[dict]:
     ).fetchall()
     ports = [dict(r) for r in port_rows]
 
-    # Security findings
-    finding_rows = conn.execute(
-        "SELECT * FROM security_findings WHERE scan_id = ? ORDER BY severity, created_at",
-        (scan_id,),
-    ).fetchall()
-    findings = [dict(r) for r in finding_rows]
+    # Security findings — include deduplicated port findings from other scans
+    try:
+        from app.services.score_service import get_findings_for_scan
+        findings = get_findings_for_scan(conn, scan_id)
+    except Exception:
+        finding_rows = conn.execute(
+            "SELECT * FROM security_findings WHERE scan_id = ? ORDER BY severity, created_at",
+            (scan_id,),
+        ).fetchall()
+        findings = [dict(r) for r in finding_rows]
 
     # Score (may be absent)
     score_row = conn.execute(

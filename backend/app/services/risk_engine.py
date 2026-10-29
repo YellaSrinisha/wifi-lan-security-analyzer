@@ -14,7 +14,7 @@ from typing import Optional
 SENSITIVE_PORTS = {21, 23, 2323, 3389, 5900, 5901, 69, 161, 162, 512, 513, 514}
 
 # Ports that may be legitimate but still worth flagging for review
-POLICY_PORTS = {22, 80, 3306, 5432, 6379, 27017, 1433, 8080, 8443}
+POLICY_PORTS = {22, 53, 80, 3306, 5432, 6379, 27017, 1433, 8080, 8443}
 
 _SENSITIVE_PORT_NAMES = {
     21: "FTP", 23: "Telnet", 69: "TFTP", 161: "SNMP", 162: "SNMP Trap",
@@ -23,7 +23,7 @@ _SENSITIVE_PORT_NAMES = {
 }
 
 _POLICY_PORT_NAMES = {
-    22: "SSH", 80: "HTTP", 1433: "MSSQL", 3306: "MySQL",
+    22: "SSH", 53: "DNS", 80: "HTTP", 1433: "MSSQL", 3306: "MySQL",
     5432: "PostgreSQL", 6379: "Redis", 8080: "HTTP alt",
     8443: "HTTPS alt", 27017: "MongoDB",
 }
@@ -207,6 +207,28 @@ HOW_TO_FIX: dict = {
         ),
     },
     # ── Policy ports (POLICY_PORT_001) ─────────────────────────────────────────
+    "POLICY_PORT_001:53": {
+        "how_to_fix": (
+            "1. Verify whether this device is supposed to be a DNS server.\n"
+            "   - Your router (gateway IP) running DNS is normal.\n"
+            "   - Any other device running DNS is suspicious.\n"
+            "2. If this device should NOT be a DNS server:\n"
+            "   a. Identify what is running on port 53 (dnsmasq, bind, etc.)\n"
+            "   b. Stop and disable the DNS service.\n"
+            "   c. On Linux: sudo systemctl stop dnsmasq && sudo systemctl disable dnsmasq\n"
+            "   d. On Windows: check Services for DNS Client or DNS Server role\n"
+            "3. If dnsmasq is detected, check its version — dnsmasq versions below 2.83\n"
+            "   have known critical vulnerabilities (DNSpooq - CVE-2020-25681 to 25687).\n"
+            "   Update to the latest version immediately.\n"
+            "4. If DNS must remain running, restrict it to only serve your local network\n"
+            "   using firewall rules — block external DNS queries."
+        ),
+        "verification_steps": (
+            "1. Port-scan the device — port 53 should show 'closed' or 'filtered'.\n"
+            "2. If DNS was kept running, verify it only responds to local network queries.\n"
+            "3. Check the dnsmasq version: run 'dnsmasq --version' — should be 2.83 or newer."
+        ),
+    },
     "POLICY_PORT_001:22": {
         "how_to_fix": (
             "1. Ensure SSH is required on this device. If not, disable it.\n"

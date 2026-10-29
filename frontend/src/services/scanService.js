@@ -1,7 +1,5 @@
 import { get, post, patch } from './api';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
 export function runDiscovery(subnet) {
   return post('/api/scans/discovery', { subnet });
 }
@@ -14,8 +12,11 @@ export function getScanHistory() {
   return get('/api/scans');
 }
 
-export function getDevices() {
-  return get('/api/devices');
+// Get devices from latest discovery scan only (default)
+export function getDevices(scanId = 'latest') {
+  if (scanId === 'all') return get('/api/devices');
+  if (scanId === 'latest') return get('/api/devices?scan_id=latest');
+  return get(`/api/devices?scan_id=${scanId}`);
 }
 
 export function getScanById(scanId) {
@@ -23,7 +24,7 @@ export function getScanById(scanId) {
 }
 
 export function compareScans(scanA, scanB) {
-  return get('/api/scans/compare?scan_a=' + scanA + '&scan_b=' + scanB);
+  return get('/api/scans/compare?scan_id_a=' + scanA + '&scan_id_b=' + scanB);
 }
 
 export function getFindings(scanId) {
@@ -43,5 +44,5 @@ export function updateApproval(deviceId, status) {
 }
 
 export function getReportCsvUrl(scanId) {
-  return BASE_URL + '/api/reports/' + scanId + '/csv';
+  return '/api/reports/' + scanId + '/csv';
 }

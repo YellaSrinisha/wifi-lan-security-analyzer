@@ -98,9 +98,27 @@ export default function PortScanner() {
   const columns = [
     { key: 'port', label: 'Port' },
     { key: 'state', label: 'State', render: (v) => <Badge variant={stateVariant(v)}>{v}</Badge> },
-    { key: 'service', label: 'Service' },
-    { key: 'product', label: 'Product' },
-    { key: 'version', label: 'Version' },
+    { key: 'service', label: 'Service', render: (v) => v || '--' },
+    {
+      key: 'product',
+      label: 'Product',
+      render: (v, row) => {
+        if (v) return v;
+        if (row.state === 'filtered') return <span className="text-xs text-gray-400 italic">filtered — no access</span>;
+        if (row.state === 'closed') return <span className="text-xs text-gray-400 italic">closed — no service</span>;
+        return <span className="text-xs text-gray-400 italic">not detected</span>;
+      },
+    },
+    {
+      key: 'version',
+      label: 'Version',
+      render: (v, row) => {
+        if (v) return v;
+        if (row.state === 'filtered') return <span className="text-xs text-gray-400">--</span>;
+        if (row.state === 'closed') return <span className="text-xs text-gray-400">--</span>;
+        return <span className="text-xs text-gray-400 italic">not detected</span>;
+      },
+    },
   ];
 
   return (
